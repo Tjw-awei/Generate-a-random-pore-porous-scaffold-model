@@ -1,0 +1,92 @@
+# ======================== 输入与输出路径 ========================
+# 相对路径以本 config.yaml 所在目录为基准。
+input_step: "input/cube_10mm.step"
+output_step: "output/cube_size_0.1.step"
+output_stl: "output/cube_size_0.1.stl"
+
+# ======================== 随机性 ========================
+# 相同输入、参数、随机种子和软件版本通常会生成相同孔洞。
+random_seed: 100
+
+#   frontier = 更均匀的连通前沿扩展，推荐
+#   global   = 旧逻辑，全空间随机撒点后筛选连通
+connected_sampling_strategy: "global"
+
+# ======================== 孔洞连通模式 ========================
+# connected = 强制所有孔洞互相连通，需要 allow_overlap: true
+# free      = 完全随机孔洞，不强制连通；可以 allow_overlap: true，也可以 false
+connectivity_mode: "free"
+
+# ======================== 孔隙率控制 ========================
+# 0.40 表示目标孔隙率 40%；0.02 表示允许上下偏差约 2%。
+target_porosity: 0.40
+porosity_tolerance: 0.02
+
+# ======================== 孔径控制 ========================
+# 单位与 STEP 模型一致；若 STEP 使用 mm，这里也是 mm。
+min_pore_diameter: 0.1
+max_pore_diameter: 0.1
+# 第一版只支持 uniform（最小值与最大值之间均匀随机）。
+pore_diameter_distribution: "uniform"
+
+# ======================== 数量和采样限制 ========================
+# 达到任一上限后，即使孔隙率不足，程序也会停止并给出 warning。
+max_pore_count: 9000000
+max_sampling_attempts: 9000000
+
+# ======================== 孔间距与重叠 ========================
+# true 允许适当重叠；false 更稳健，更适合作为真实骨模型第一次测试。
+allow_overlap: true
+# 仅 allow_overlap=true 时起作用；越大允许孔中心越接近。
+overlap_factor: 0.2
+
+# 本连通边界变体保留该参数以兼容原配置，但不再执行边界安全距离限制。
+# 孔中心位于实体内部或边界即可，孔体允许接触或穿过模型外表面。
+boundary_clearance: 0.5
+
+# ======================== 孔形状 ========================
+# 可选 sphere（球孔）或 ellipsoid（椭球孔）。
+hole_shape: "sphere"
+# 仅 hole_shape=ellipsoid 时使用，表示 x/y/z 三方向随机缩放范围。
+ellipsoid_scale_range:
+  x: [0.8, 1.3]
+  y: [0.8, 1.3]
+  z: [0.8, 1.3]
+
+# ======================== 布尔与 STL 导出 ========================
+# 每批切除多少个孔；越小通常越稳但越慢。
+boolean_batch_size: 20
+# STL 线性离散公差，单位与 STEP 一致；越小 STL 越细、文件越大。
+export_stl_tolerance: 0.1
+
+# ======================== CPU / OCC 并行设置 ========================
+# true：开启 OpenCascade/OCC 布尔运算内部并行模式。
+# 注意：这不是 Python 多进程，也不保证 CPU 使用率一定 100%，
+# 但会让 OCC 能并行的布尔阶段尽量使用多核。
+enable_occ_parallel: true
+
+# 0 表示使用 OCC 默认线程数；也可以手动设置，比如 8、16、32。
+# 工作站建议先试 cpu_threads: 0；如果 CPU 仍很低，再试物理核心数的一半或全部。
+cpu_threads: 8
+
+# ======================== STEP 布尔空间分区 ========================
+# true：把孔洞按空间位置分成多个区域，逐区执行布尔差集。
+# 注意：这不是把模型真的切成小块，最终仍然只输出一个完整 STEP/STL。
+# 它只是把“布尔计算任务”拆小，让每次 Cut 面对的孔洞数量更少，并且日志能显示处理进度。
+use_spatial_boolean_partition: true
+
+# 分区数量。总分区数 = nx * ny * nz。
+# 例如 2*2*2 = 8 个分区；3*3*3 = 27 个分区。
+# 分区越多，每次布尔孔数越少，进度更细；但分区太多也会增加重复清理和导出前处理开销。
+boolean_partition:
+  nx: 2
+  ny: 2
+  nz: 2
+
+# 如果空间分区布尔失败次数达到这个上限，就停止继续布尔。
+# 程序不会直接崩掉，而是导出“当前已经成功切掉部分孔洞”的模型。
+max_boolean_failures: 3
+
+# true：达到失败上限后，导出当前已完成的 STEP/STL。
+# false：即使某些分区失败，也继续尝试后面的分区。
+export_partial_on_boolean_failure: true
