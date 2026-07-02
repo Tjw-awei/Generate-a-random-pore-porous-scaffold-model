@@ -1,1 +1,2 @@
-
+porous_step_model_connected_boundary-new是Boolean operation输出step几何模型
+porous_mesh_element_delete_domain_parallel是网格删除法输出是inp文件
